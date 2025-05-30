@@ -1,13 +1,20 @@
-const gridSize = 10;
+let gridSize = 10;
 let mode = 'obstacle';
 let start = { row: 0, col: 0 };
 let end = { row: 9, col: 9 };
 let grid = [];
 
-function createGrid() {
+function createGrid(restore) {
   const gridElem = document.getElementById('grid');
   gridElem.innerHTML = '';
   grid = [];
+  if (restore && restore.gridSize) {
+    gridSize = restore.gridSize;
+    start = restore.start;
+    end = restore.end;
+  }
+  gridElem.style.gridTemplateColumns = `repeat(${gridSize}, 30px)`;
+  gridElem.style.gridTemplateRows = `repeat(${gridSize}, 30px)`;
   for (let row = 0; row < gridSize; row++) {
     const rowArr = [];
     for (let col = 0; col < gridSize; col++) {
@@ -20,10 +27,22 @@ function createGrid() {
       cell.addEventListener('mouseup', onCellMouseUp);
       cell.addEventListener('click', onCellClick);
       gridElem.appendChild(cell);
-      rowArr.push({ type: 'empty', elem: cell });
+      let cellType = 'empty', cellWeight = 1;
+      if (restore && restore.grid && restore.grid[row] && restore.grid[row][col]) {
+        cellType = restore.grid[row][col].type;
+        cellWeight = restore.grid[row][col].weight || 1;
+      }
+      rowArr.push({ type: cellType, elem: cell, weight: cellWeight });
     }
     grid.push(rowArr);
   }
+
+  for (let row = 0; row < gridSize; row++) {
+    for (let col = 0; col < gridSize; col++) {
+      updateCell(row, col, grid[row][col].type, grid[row][col].weight);
+    }
+  }
+
   updateCell(start.row, start.col, 'start');
   updateCell(end.row, end.col, 'end');
 }
@@ -59,10 +78,21 @@ function onCellMouseUp(e) {
   dragType = null;
 }
 
-function updateCell(row, col, type) {
+function updateCell(row, col, type, weight) {
   const cell = grid[row][col];
   cell.type = type;
   cell.elem.className = 'cell ' + (type !== 'empty' ? type : '');
+  if (type === 'weight') {
+    cell.elem.textContent = cell.weight || weight || 2;
+    cell.elem.style.background = 'linear-gradient(145deg, #ffe082 80%, #ffb300 100%)';
+    cell.elem.style.color = '#333';
+    cell.weight = weight || 2;
+  } else {
+    cell.elem.textContent = '';
+    cell.elem.style.color = '';
+    cell.elem.style.background = '';
+    cell.weight = 1;
+  }
 }
 
 function onCellClick(e) {
@@ -87,13 +117,64 @@ function onCellClick(e) {
   }
 }
 
+document.getElementById('setStart').onclick = () => mode = 'start';
 document.getElementById('setEnd').onclick = () => mode = 'end';
 document.getElementById('setObstacle').onclick = () => mode = 'obstacle';
+document.getElementById('setWeight').onclick = () => mode = 'weight';
 document.getElementById('deleteObstacle').onclick = () => mode = 'deleteObstacle';
 document.getElementById('clear').onclick = () => createGrid();
+document.getElementById('saveGrid').onclick = () => {
+  const saveData = {
+    grid: grid.map(row => row.map(cell => ({ type: cell.type, weight: cell.weight || 1 }))),
+    start,
+    end,
+    gridSize
+  };
+  localStorage.setItem('pathfinderGrid', JSON.stringify(saveData));
+  document.getElementById('message').textContent = 'Grid saved!';
+};
+document.getElementById('loadGrid').onclick = () => {
+  const data = localStorage.getItem('pathfinderGrid');
+  if (data) {
+    const parsed = JSON.parse(data);
+    document.getElementById('gridSize').value = parsed.gridSize;
+    gridSize = parsed.gridSize;
+    start = parsed.start;
+    end = parsed.end;
+    createGrid(parsed);
+    document.getElementById('message').textContent = 'Grid loaded!';
+  } else {
+    document.getElementById('message').textContent = 'No saved grid.';
+  }
+};
 document.getElementById('run').onclick = () => runDijkstra();
 
 document.addEventListener('mouseup', () => { isMouseDown = false; dragType = null; });
+
+const gridSizeInput = document.getElementById('gridSize');
+if (gridSizeInput) {
+  gridSizeInput.addEventListener('input', (e) => {
+    const val = parseInt(e.target.value, 10);
+    if (!isNaN(val) && val > 1 && val <= 50) {
+      gridSize = val;
+      start = { row: 0, col: 0 };
+      end = { row: gridSize - 1, col: gridSize - 1 };
+      createGrid();
+      document.getElementById('message').textContent = `Grid size set to ${gridSize}`;
+    }
+  });
+}
+
+
+let animationSpeed = 30;
+const speedInput = document.getElementById('speedControl');
+if (speedInput) {
+  speedInput.addEventListener('change', (e) => {
+    if (e.target.value === 'slow') animationSpeed = 100;
+    else if (e.target.value === 'medium') animationSpeed = 30;
+    else if (e.target.value === 'fast') animationSpeed = 5;
+  });
+}
 
 function sleep(ms) { return new Promise(res => setTimeout(res, ms)); }
 
@@ -118,7 +199,7 @@ async function runDijkstra() {
     visited[row][col] = true;
     if (!(row === start.row && col === start.col) && !(row === end.row && col === end.col)) {
       updateCell(row, col, 'visited');
-      await sleep(30);
+      await sleep(animationSpeed);
     }
     if (row === end.row && col === end.col) {
       found = true;
@@ -144,7 +225,7 @@ async function runDijkstra() {
   }
   for (let i = path.length - 1; i >= 0; i--) {
     updateCell(path[i].row, path[i].col, 'path');
-    await sleep(50);
+    await sleep(animationSpeed * 1.5);
   }
   if (found && path.length > 0) {
     setTimeout(() => {

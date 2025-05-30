@@ -7,17 +7,32 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h1>Pathfinder</h1>
+  <h1>PaFinder</h1>
   <div id="grid"></div>
-  <div id="message" style="text-align:center;margin:10px;font-size:1.1rem;font-weight:bold;color:#1976d2;"></div>
   <div id="controls">
-    <button id="setStart">Set Starting Cell</button>
-    <button id="setEnd">Set Ending Cell</button>
-    <button id="setObstacle">Set Obstacles</button>
-    <button id="deleteObstacle">Delete Obstacles</button>
-    <button id="clear">Clear</button>
-    <button id="run">Find Path</button>
+    <div class="controls-row">
+      <label for="gridSize">Grid Size:</label>
+      <input type="number" id="gridSize" min="5" max="30" value="10" style="width:50px;">
+      <label for="speed">Speed:</label>
+      <select id="speedControl">
+        <option value="slow">Slow</option>
+        <option value="medium" selected>Medium</option>
+        <option value="fast">Fast</option>
+      </select>
+    </div>
+    <div class="button-grid">
+      <button id="setStart">Set Starting Cell</button>
+      <button id="setEnd">Set Ending Cell</button>
+      <button id="setObstacle">Set Obstacles</button>
+      <button id="setWeight">Set Weight</button>
+      <button id="deleteObstacle">Delete Obstacles</button>
+      <button id="clear">Clear</button>
+      <button id="saveGrid">Save Grid</button>
+      <button id="loadGrid">Load Grid</button>
+      <button id="run">Find Path</button>
+    </div>
   </div>
+  <div id="message" style="text-align:center;margin:10px;font-size:1.1rem;font-weight:bold;color:#1976d2;"></div>
   <script src="visualizer.js"></script>
 </body>
 </html>
